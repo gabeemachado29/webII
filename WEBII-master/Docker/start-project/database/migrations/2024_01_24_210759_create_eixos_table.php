@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::create('eixos', function (Blueprint $table) {
             $table->id();
-            $table->string('nome', 100);
-            $table->text('descricao');
+            $table->string('nome');
+            $table->softDeletes();
             $table->timestamps();
         });
     }

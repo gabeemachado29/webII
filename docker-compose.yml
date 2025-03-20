@@ -6,8 +6,8 @@ services:
     ports:
       - "8080:80"
     volumes:
-      - ./php/public:/var/www/html  # Pasta pública
-      - ./php/scripts-php:/var/www/scripts  # Scripts PHP
+      - ./php/public:/var/www/html # Pasta pública
+      - ./php/scripts-php:/var/www/scripts # Scripts PHP
     networks:
       - php-network
 
@@ -34,6 +34,7 @@ services:
 
 volumes:
   mysql-data:
+
 
 networks:
   php-network:

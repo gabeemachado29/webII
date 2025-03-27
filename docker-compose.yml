@@ -10,6 +10,8 @@ services:
       - ./php/scripts-php:/var/www/scripts # Scripts PHP
     networks:
       - php-network
+    command: >
+      bash -c "docker-php-ext-install pdo pdo_mysql && apache2-foreground"
 
   mysql:
     image: mysql:8.0

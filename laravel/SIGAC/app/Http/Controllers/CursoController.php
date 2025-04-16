@@ -3,45 +3,58 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-
+use App\Repositories\CursoRepository;
 use App\Repositories\EixoRepository;
 use App\Repositories\NivelRepository;
-use App\Repositories\CursoRepository;
 use App\Models\Curso;
 
-class CursoController extends Controller
-{
+class CursoController extends Controller {
+
     protected $repository;
-    
+    private $rules = [
+        'nome' => 'required|min:5|max:200|unique:cursos',
+        'sigla' => 'required|min:2|max:8',
+        'horas' => 'required',
+        'eixo_id' => 'required',
+        'nivel_id' => 'required',
+    ];
+    private $messages = [
+        "required" => "O preenchimento do campo [:attribute] é obrigatório!",
+        "max" => "O campo [:attribute] possui tamanho máximo de [:max] caracteres!",
+        "min" => "O campo [:attribute] possui tamanho mínimo de [:min] caracteres!",
+        "unique" => "Já existe um curso cadastrado com esse [:attribute]!",
+    ];
+   
     public function __construct(){
-        $this->repository = new CursoRepository();
+       $this->repository = new CursoRepository();
     }
 
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
-    {
-        $data = $this->repository->selectAllWith(['eixo', 'nivel']);
+    public function index() {
+
+        $this->authorize('hasFullPermission', Curso::class);
+        $data = $this->repository->selectAllWith(
+            ['eixo', 'nivel'], 
+            (object) ["use" => true, "rows" => $this->repository->getRows()]
+        );
+        return view('curso.index', compact('data'));
         return $data;
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
+    public function create() {
+
+        $this->authorize('hasFullPermission', Curso::class);
+        $eixos = (new EixoRepository())->selectAll((object) ["use" => false, "rows" => 0]);
+        $niveis = (new NivelRepository())->selectAll((object) ["use" => false, "rows" => 0]);
+        return view('curso.create', compact(['eixos', 'niveis']));
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
+    public function store(Request $request) {
+
+        $this->authorize('hasFullPermission', Curso::class);
+        $request->validate($this->rules, $this->messages);
         $objEixo = (new EixoRepository())->findById($request->eixo_id);
         $objNivel = (new NivelRepository())->findById($request->nivel_id);
-        
+
         if(isset($objEixo) && isset($objNivel)) {
             $obj = new Curso();
             $obj->nome = mb_strtoupper($request->nome, 'UTF-8');
@@ -50,35 +63,53 @@ class CursoController extends Controller
             $obj->eixo()->associate($objEixo);
             $obj->nivel()->associate($objNivel);
             $this->repository->save($obj);
-            return "<h1>Store - OK!</h1>";
+            return redirect()->route('curso.index');
         }
-        return "<h1>Store - Not found Eixo or Nível!</h1>";
+        
+        return view('message')
+                    ->with('template', "main")
+                    ->with('type', "danger")
+                    ->with('titulo', "OPERAÇÃO INVÁLIDA")
+                    ->with('message', "Não foi possível efetuar o procedimento!")
+                    ->with('link', "curso.index");
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
+    public function show(string $id) {
+        
+        $this->authorize('hasFullPermission', Curso::class);
+        $data = $this->repository->findByIdWith(['eixo', 'nivel'], $id);
+        if(isset($data))
+            return view('curso.show', compact('data'));
+
+        return view('message')
+                    ->with('template', "main")
+                    ->with('type', "danger")
+                    ->with('titulo', "OPERAÇÃO INVÁLIDA")
+                    ->with('message', "Não foi possível efetuar o procedimento!")
+                    ->with('link', "curso.index");
+    }   
+
+    public function edit(string $id) {
+
+        $this->authorize('hasFullPermission', Curso::class);
         $data = $this->repository->findById($id);
-        return $data;
+        if(isset($data)) {
+            $eixos = (new EixoRepository())->selectAll((object) ["use" => false, "rows" => 0]);
+            $niveis = (new NivelRepository())->selectAll((object) ["use" => false, "rows" => 0]);
+            return view('curso.edit', compact(['data', 'eixos', 'niveis']));
+        }
 
+        return view('message')
+                    ->with('template', "main")
+                    ->with('type', "danger")
+                    ->with('titulo', "OPERAÇÃO INVÁLIDA")
+                    ->with('message', "Não foi possível efetuar o procedimento!")
+                    ->with('link', "curso.index");
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        // $data = $this->repository->findById($id);
-        // retorna, para o usuário, a view de edição de Curso - passa objeto $data
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
+    public function update(Request $request, string $id) {
+        
+        $this->authorize('hasFullPermission', Curso::class);
         $obj = $this->repository->findById($id);
         $objEixo = (new EixoRepository())->findById($request->eixo_id);
         $objNivel = (new NivelRepository())->findById($request->nivel_id);
@@ -90,19 +121,29 @@ class CursoController extends Controller
             $obj->eixo()->associate($objEixo);
             $obj->nivel()->associate($objNivel);
             $this->repository->save($obj);
-            return "<h1>Upate - OK!</h1>";
+            return redirect()->route('curso.index');
         }
-        return "<h1>Upate - Not found Curso or Eixo or Nível!</h1>";
+
+        return view('message')
+            ->with('template', "main")
+            ->with('type', "danger")
+            ->with('titulo', "OPERAÇÃO INVÁLIDA")
+            ->with('message', "Não foi possível efetuar o procedimento!")
+            ->with('link', "curso.index");
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        if($this->repository->delete($id)) {
-            return "<h1>Delete - OK!</h1>";
+    public function destroy(string $id) {
+        
+        $this->authorize('hasFullPermission', Curso::class);
+        if($this->repository->delete($id))  {
+            return redirect()->route('curso.index');
         }
-        return "<h1>Delete - Not found Eixo!</h1>";
+        
+        return view('message')
+                    ->with('template', "main")
+                    ->with('type', "danger")
+                    ->with('titulo', "OPERAÇÃO INVÁLIDA")
+                    ->with('message', "Não foi possível efetuar o procedimento!")
+                    ->with('link', "curso.index");
     }
 }

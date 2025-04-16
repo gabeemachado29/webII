@@ -3,87 +3,114 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-
 use App\Repositories\EixoRepository;
 use App\Models\Eixo;
+use App\Repositories\CursoRepository;
 
-class EixoController extends Controller
-{
-    protected $repository;
+class EixoController extends Controller {
     
+    protected $repository;
+    private $rules = [
+        'nome' => 'required|min:5|max:200|unique:eixos',
+    ];
+    private $messages = [
+        "required" => "O preenchimento do campo [:attribute] é obrigatório!",
+        "max" => "O campo [:attribute] possui tamanho máximo de [:max] caracteres!",
+        "min" => "O campo [:attribute] possui tamanho mínimo de [:min] caracteres!",
+        "unique" => "Já existe um eixo cadastrado com esse [:attribute]!",
+    ];
+   
     public function __construct(){
-        $this->repository = new EixoRepository();
+       $this->repository = new EixoRepository();
     }
 
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
-    {
-        $data = $this->repository->selectAll();
+    public function index() {
+
+        $this->authorize('hasFullPermission', Eixo::class);
+        $data = $this->repository->selectAllWith(
+            ['curso'],
+            (object) ["use" => true, "rows" => $this->repository->getRows()]
+        );
+        return view('eixo.index')->with('data', $data);
         return $data;
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
+    public function create() {
+
+        $this->authorize('hasFullPermission', Eixo::class);
+        return view('eixo.create');
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
+    public function store(Request $request) {
+
+        $this->authorize('hasFullPermission', Eixo::class);
+        $request->validate($this->rules, $this->messages);
         $obj = new Eixo();
         $obj->nome = mb_strtoupper($request->nome, 'UTF-8');
         $this->repository->save($obj);
-        return "<h1>Store - OK!</h1>";
-
+        return redirect()->route('eixo.index');
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
+    public function show(string $id) {
+
+        $this->authorize('hasFullPermission', Eixo::class);
+        $data = $this->repository->findByIdWith(['curso'], $id);
+        if(isset($data)) 
+            return view('eixo.show', compact('data'));
+
+        return view('message')
+            ->with('template', "main")
+            ->with('type', "danger")
+            ->with('titulo', "OPERAÇÃO INVÁLIDA")
+            ->with('message', "Não foi possível efetuar o procedimento!")
+            ->with('link', "eixo.index");
+    }   
+
+    public function edit(string $id) {
+
+        $this->authorize('hasFullPermission', Eixo::class);
         $data = $this->repository->findById($id);
-        return $data;
+        if(isset($data))
+            return view('eixo.edit', compact('data'));
+
+        return view('message')
+            ->with('template', "main")
+            ->with('type', "danger")
+            ->with('titulo', "OPERAÇÃO INVÁLIDA")
+            ->with('message', "Não foi possível efetuar o procedimento!")
+            ->with('link', "eixo.index");
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        //
-    }
+    public function update(Request $request, string $id) {
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
+        $this->authorize('hasFullPermission', Eixo::class);
         $obj = $this->repository->findById($id);
         if(isset($obj)) {
             $obj->nome = mb_strtoupper($request->nome, 'UTF-8');
             $this->repository->save($obj);
-            return "<h1>Upate - OK!</h1>";
+            return redirect()->route('eixo.index');
         }
-        return "<h1>Upate - Not found Eixo!</h1>";
+
+        return view('message')
+            ->with('template', "main")
+            ->with('type', "danger")
+            ->with('titulo', "OPERAÇÃO INVÁLIDA")
+            ->with('message', "Não foi possível efetuar o procedimento!")
+            ->with('link', "eixo.index");
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        if($this->repository->delete($id)) {
-            return "<h1>Delete - OK!</h1>";
+    public function destroy(string $id) {
+
+        $this->authorize('hasFullPermission', Eixo::class);
+        if($this->repository->delete($id))  {
+            return redirect()->route('eixo.index');
         }
         
-        return "<h1>Delete - Not found Eixo!</h1>";
+        return view('message')
+            ->with('template', "main")
+            ->with('type', "danger")
+            ->with('titulo', "OPERAÇÃO INVÁLIDA")
+            ->with('message', "Não foi possível efetuar o procedimento!")
+            ->with('link', "eixo.index");
     }
 }

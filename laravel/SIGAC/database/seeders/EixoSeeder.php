@@ -6,7 +6,6 @@ use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
-
 class EixoSeeder extends Seeder
 {
     /**
@@ -18,9 +17,10 @@ class EixoSeeder extends Seeder
             ["nome" => "INFORMAÇÃO E COMUNICAÇÃO"],
             ["nome" => "RECURSOS NATURAIS"],
             ["nome" => "CIÊNCIAS HUMANAS"],
+            ["nome" => "FÍSICA"],
+            ["nome" => "MECÂNICA"],
+            ["nome" => "LINGUAGENS"],
         ];
-        
         DB::table('eixos')->insert($data);
-            
     }
 }

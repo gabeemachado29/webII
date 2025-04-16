@@ -3,100 +3,114 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Repositories\NivelRepository; // Repositório de Nível
-use App\Models\Nivel; // Modelo de Nível
+use App\Repositories\NivelRepository;
+use App\Models\Nivel;
 
-class NivelController extends Controller
-{
+class NivelController extends Controller {
+
     protected $repository;
-
-    public function __construct()
-    {
-        // Atribuindo o repositório para uso no controller
-        $this->repository = new NivelRepository();
+    private $rules = [
+        'nome' => 'required|min:5|max:200|unique:niveis',
+    ];
+    private $messages = [
+        "required" => "O preenchimento do campo [:attribute] é obrigatório!",
+        "max" => "O campo [:attribute] possui tamanho máximo de [:max] caracteres!",
+        "min" => "O campo [:attribute] possui tamanho mínimo de [:min] caracteres!",
+        "unique" => "Já existe um nível de ensino cadastrado com esse [:attribute]!",
+    ];
+   
+    public function __construct(){
+       $this->repository = new NivelRepository();
     }
 
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
-    {
-        // Recupera todos os Níveis utilizando o repositório
-        $data = $this->repository->selectAll();
-        return $data;
+    public function index() {
+
+        $this->authorize('hasFullPermission', Nivel::class);
+        $data = $this->repository->selectAllWith(
+            ['curso'],
+            (object) ["use" => true, "rows" => $this->repository->getRows()]
+        );
+        return view('nivel.index', compact('data'));
+        // return $data;
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        // Exemplo: Retorna uma view para criação de um novo Nível, se necessário.
+    public function create() {
+
+        $this->authorize('hasFullPermission', Nivel::class);
         return view('nivel.create');
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        // Cria um novo objeto de Nível
+    public function store(Request $request) {
+
+        $this->authorize('hasFullPermission', Nivel::class);
+        $request->validate($this->rules, $this->messages);
         $obj = new Nivel();
-        $obj->nome = mb_strtoupper($request->nome, 'UTF-8'); // Converte o nome para maiúsculas
-        $this->repository->save($obj); // Chama o repositório para salvar o novo nível
-        return "<h1>Store - OK!</h1>";
+        $obj->nome = mb_strtoupper($request->nome, 'UTF-8');
+        $this->repository->save($obj);
+        return redirect()->route('nivel.index');
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        // Exibe o Nível com o ID especificado
-        $data = $this->repository->findById($id);
+    public function show(string $id) {
+
+        $this->authorize('hasFullPermission', Nivel::class);
+        $data = $this->repository->findByIdWith(['curso'], $id);
+        if(isset($data)) 
+            return view('nivel.show', compact('data'));
+
+        return view('message')
+            ->with('template', "main")
+            ->with('type', "danger")
+            ->with('titulo', "OPERAÇÃO INVÁLIDA")
+            ->with('message', "Não foi possível efetuar o procedimento!")
+            ->with('link', "nivel.index");
         return $data;
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        // Exemplo: Retorna uma view para editar um nível com o ID especificado
-        $nivel = $this->repository->findById($id);
-        return view('nivel.edit', compact('nivel'));
+    public function edit(string $id) {
+
+        $this->authorize('hasFullPermission', Nivel::class);
+        $data = $this->repository->findById($id);
+        if(isset($data))
+            return view('nivel.edit', compact('data'));
+
+        return view('message')
+            ->with('template', "main")
+            ->with('type', "danger")
+            ->with('titulo', "OPERAÇÃO INVÁLIDA")
+            ->with('message', "Não foi possível efetuar o procedimento!")
+            ->with('link', "eixo.index");
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        // Recupera o Nível com o ID
+    public function update(Request $request, string $id) {
+
+        $this->authorize('hasFullPermission', Nivel::class);
         $obj = $this->repository->findById($id);
-        
-        // Verifica se o Nível foi encontrado
-        if (isset($obj)) {
-            $obj->nome = mb_strtoupper($request->nome, 'UTF-8'); // Atualiza o nome do Nível
-            $this->repository->save($obj); // Chama o repositório para salvar a atualização
-            return "<h1>Update - OK!</h1>";
+        if(isset($obj)) {
+            $obj->nome = mb_strtoupper($request->nome, 'UTF-8');
+            $this->repository->save($obj);
+            return redirect()->route('nivel.index');
         }
 
-        // Caso o Nível não seja encontrado
-        return "<h1>Update - Nível não encontrado!</h1>";
+        return view('message')
+            ->with('template', "main")
+            ->with('type', "danger")
+            ->with('titulo', "OPERAÇÃO INVÁLIDA")
+            ->with('message', "Não foi possível efetuar o procedimento!")
+            ->with('link', "eixo.index");
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        // Chama o repositório para deletar o Nível com o ID especificado
-        if ($this->repository->delete($id)) {
-            return "<h1>Delete - OK!</h1>";
-        }
+    public function destroy(string $id) {
 
-        // Caso o Nível não seja encontrado
-        return "<h1>Delete - Nível não encontrado!</h1>";
+        $this->authorize('hasFullPermission', Nivel::class);
+        if($this->repository->delete($id))  {
+            return redirect()->route('nivel.index');
+        }
+        
+        return view('message')
+            ->with('template', "main")
+            ->with('type', "danger")
+            ->with('titulo', "OPERAÇÃO INVÁLIDA")
+            ->with('message', "Não foi possível efetuar o procedimento!")
+            ->with('link', "eixo.index");
     }
 }

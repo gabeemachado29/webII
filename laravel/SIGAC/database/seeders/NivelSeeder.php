@@ -14,11 +14,12 @@ class NivelSeeder extends Seeder
     public function run(): void
     {
         $data = [
-            ["nome" => "ENSINO MÉDIO INTEGRADO - TÉCNICO"],
-            ["nome" => "GRADUAÇÃO - TECNÓLOGO"],
+            ["nome" => "ENSINO MÉDIO INTEGRADO"],
+            ["nome" => "GRADUAÇÃO"],
+            ["nome" => "ESPECIALIZAÇÃO"],
+            ["nome" => "MESTRADO"],
+            ["nome" => "DOUTORADO"],
         ];
-        
-        DB::table('nivels')->insert($data);
-            
+        DB::table('niveis')->insert($data);
     }
 }

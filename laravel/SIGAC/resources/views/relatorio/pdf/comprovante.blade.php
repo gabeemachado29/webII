@@ -28,7 +28,7 @@
         de <b>{{ $data->horas_necessarias }} horas</b>.
     </p>
     <br><br><br><br><br><br><br><br><br><br>
-    <p style="text-align: left; font-size:20px";>
+    <p style="text-align: center; font-size:20px";>
         Paranaguá, {{$data->dia}} de {{$data->mes}} de {{$data->ano}}.
     </p>
     <br><br><br><br><br><br>
